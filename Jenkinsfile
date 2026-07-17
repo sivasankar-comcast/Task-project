@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        dockerfile {
+        docker {
             filename 'Dockerfile'
             args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
         }
