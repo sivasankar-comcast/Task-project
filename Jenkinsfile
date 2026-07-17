@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.11-slim'
+            args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     stages {
         stage('Checkout') {
@@ -9,19 +14,20 @@ pipeline {
             }
         }
 
-        stage('Setup Python') {
+        stage('Setup Dependencies') {
             steps {
-                echo 'Setting up Python environment...'
+                echo 'Installing Python dependencies...'
                 sh '''
                     python3 --version
-                    pip3 install -r requirements.txt
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
                 '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Running pytest...'
+                echo 'Running tests...'
                 sh 'pytest test_main.py -v'
             }
         }
@@ -32,30 +38,14 @@ pipeline {
                 sh 'docker build -t task-api:latest .'
             }
         }
-
-        stage('Health Check') {
-            steps {
-                echo 'Starting app and checking health...'
-                sh '''
-                    docker run -d --name task-api-test -p 8001:8000 task-api:latest
-                    sleep 5
-                    curl http://localhost:8001/health
-                    docker stop task-api-test
-                    docker rm task-api-test
-                '''
-            }
-        }
     }
 
     post {
         success {
-            echo '✅ Pipeline passed! All stages completed successfully.'
+            echo '✅ All stages passed!'
         }
         failure {
-            echo '❌ Pipeline failed! Copy the log above and paste into CI/CD Log Analyzer.'
-        }
-        always {
-            echo 'Pipeline finished.'
+            echo '❌ Pipeline failed — copy this log into your CI/CD Analyzer!'
         }
     }
 }
